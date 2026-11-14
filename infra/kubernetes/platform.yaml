@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bridgescope
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bridgescope-api
+  namespace: bridgescope
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bridgescope-api
+  template:
+    metadata:
+      labels:
+        app: bridgescope-api
+    spec:
+      containers:
+        - name: api
+          image: registry.example.invalid/bridgescope-api:replace-at-deploy
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_ENV
+              value: production
+            - name: OPERATOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bridgescope-operator-key
+                  key: operator-key
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bridgescope-api
+  namespace: bridgescope
+spec:
+  selector:
+    app: bridgescope-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bridgescope-web
+  namespace: bridgescope
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bridgescope-web
+  template:
+    metadata:
+      labels:
+        app: bridgescope-web
+    spec:
+      containers:
+        - name: frontend
+          image: registry.example.invalid/bridgescope-web:replace-at-deploy
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bridgescope-web
+  namespace: bridgescope
+spec:
+  selector:
+    app: bridgescope-web
+  ports:
+    - port: 3000
+      targetPort: 3000

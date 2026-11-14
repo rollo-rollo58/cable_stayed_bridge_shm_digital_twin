@@ -1,0 +1,22 @@
+groups:
+  - name: bridgescope-research-platform
+    interval: 30s
+    rules:
+      - alert: BridgeScopeApiUnavailable
+        expr: up{job="bridgescope-api"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Research API scrape target unavailable
+          description: Verify deployment health and monitoring configuration.
+      - alert: BridgeScopeApiLatency
+        expr: rate(http_request_duration_seconds_sum{job="bridgescope-api"}[5m])
+          / clamp_min(rate(http_request_duration_seconds_count{job="bridgescope-api"}[5m]), 1)
+          > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Elevated average API latency
+          description: Response-time telemetry is above the research service threshold.
